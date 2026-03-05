@@ -5,94 +5,85 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PC Status Monitor</title>
     <style>
-        /* Das Design */
         body {
             margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             color: white;
-            transition: background-color 1s ease;
+            transition: background-color 0.8s ease;
             text-align: center;
         }
-
-        .status-card {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 40px;
-            border-radius: 20px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        .box {
+            background: rgba(0,0,0,0.3);
+            padding: 50px;
+            border-radius: 30px;
         }
-
-        h1 {
-            font-size: 3.5rem;
-            margin: 0;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-        }
-
-        p {
-            font-size: 1.2rem;
-            opacity: 0.8;
-            margin-top: 10px;
-        }
-
-        /* Hintergrundfarben */
-        .online { background-color: #27ae60; } /* Gruen */
-        .offline { background-color: #c0392b; } /* Rot */
-
+        h1 { font-size: 4rem; margin: 0; }
+        p { font-size: 1.2rem; margin-top: 15px; opacity: 0.7; }
+        
+        /* Zustands-Farben */
+        .online { background-color: #2ecc71; }
+        .offline { background-color: #e74c3c; }
+        .error { background-color: #95a5a6; }
     </style>
 </head>
 <body id="bg" class="offline">
 
-    <div class="status-card">
-        <h1 id="status-text">PRÜFE...</h1>
-        <p id="time-info">Warte auf Signal von Firebase</p>
+    <div class="box">
+        <h1 id="status-text">LADE...</h1>
+        <p id="debug-info">Verbindung wird aufgebaut...</p>
     </div>
 
     <script>
-        // DEINE URL AUS DEM SCREENSHOT
+        // Deine URL von Firebase
         const URL = "https://lolses-default-rtdb.firebaseio.com/status.json";
 
-        async function checkPCStatus() {
+        async function updateStatus() {
+            const bg = document.getElementById("bg");
+            const text = document.getElementById("status-text");
+            const debug = document.getElementById("debug-info");
+
             try {
                 const response = await fetch(URL);
                 const data = await response.json();
-                
-                if (data && data.online) {
-                    const lastSeen = data.online;
-                    const now = Date.now() / 1000; // Aktuelle Zeit in Sekunden
-                    
-                    const timeDiff = now - lastSeen;
-                    const body = document.getElementById("bg");
-                    const text = document.getElementById("status-text");
-                    const info = document.getElementById("time-info");
 
-                    // Wenn das Signal jünger als 20 Sekunden ist
-                    if (timeDiff < 20) {
-                        body.className = "online";
-                        text.innerText = "PC IST AN";
-                        info.innerText = "Letztes Signal: Gerade eben";
-                    } else {
-                        body.className = "offline";
-                        text.innerText = "PC IST AUS";
-                        info.innerText = "Letztes Signal vor " + Math.round(timeDiff) + " Sekunden";
-                    }
+                // Falls die Datenbank leer ist
+                if (!data || !data.online) {
+                    bg.className = "error";
+                    text.innerText = "KEINE DATEN";
+                    debug.innerText = "Datenbank liefert kein 'online' Signal.";
+                    return;
                 }
-            } catch (error) {
-                console.error("Fehler beim Abrufen der Daten:", error);
-                document.getElementById("status-text").innerText = "FEHLER";
+
+                const lastSeen = data.online;
+                const now = Date.now() / 1000;
+                const diff = now - lastSeen;
+
+                // Wenn das Signal jünger als 20 Sekunden ist -> GRÜN
+                if (diff < 20) {
+                    bg.className = "online";
+                    text.innerText = "PC AN";
+                    debug.innerText = "Signal ist aktuell.";
+                } else {
+                    bg.className = "offline";
+                    text.innerText = "PC AUS";
+                    debug.innerText = "Letztes Signal vor " + Math.round(diff) + " Sekunden.";
+                }
+
+            } catch (err) {
+                bg.className = "error";
+                text.innerText = "FEHLER";
+                debug.innerText = "Konnte Firebase nicht erreichen. (Check F12 Console)";
+                console.error(err);
             }
         }
 
-        // Alle 5 Sekunden aktualisieren
-        setInterval(checkPCStatus, 5000);
-        
-        // Sofort beim Laden einmal ausfuhren
-        checkPCStatus();
+        // Alle 3 Sekunden prüfen
+        setInterval(updateStatus, 3000);
+        updateStatus();
     </script>
 </body>
 </html>
