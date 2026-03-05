@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>PC Status Monitor</title>
+    <style>
+        body { 
+            margin: 0; 
+            transition: background 1.5s ease; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            color: white; 
+            font-family: 'Segoe UI', sans-serif; 
+        }
+        .status-text { font-size: 5vw; font-weight: bold; text-shadow: 2px 2px 10px rgba(0,0,0,0.3); }
+        .online { background-color: #2ecc71; }
+        .offline { background-color: #e74c3c; }
+    </style>
+</head>
+<body id="bg" class="offline">
+    <div class="status-text" id="status-text">PC IST AUS</div>
+
+    <script>
+        const FB_URL = "https://lolses-default-rtdb.firebaseio.com/status.json";
+
+        async function checkStatus() {
+            try {
+                const response = await fetch(FB_URL);
+                const data = await response.json();
+                
+                if (data && data.last_seen) {
+                    const now = Date.now() / 1000;
+                    // Wenn das letzte Signal weniger als 60 Sek alt ist -> AN
+                    if (now - data.last_seen < 60) {
+                        document.body.className = "online";
+                        document.getElementById("status-text").innerText = "PC IST AN";
+                    } else {
+                        document.body.className = "offline";
+                        document.getElementById("status-text").innerText = "PC IST AUS";
+                    }
+                }
+            } catch (e) {
+                console.log("Warte auf Daten...");
+            }
+        }
+
+        setInterval(checkStatus, 5000); // Checkt alle 5 Sekunden
+        checkStatus();
+    </script>
+</body>
+</html>
