@@ -1,89 +1,276 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PC Status Monitor</title>
-    <style>
-        body {
-            margin: 0;
-            font-family: sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            color: white;
-            transition: background-color 0.8s ease;
-            text-align: center;
-        }
-        .box {
-            background: rgba(0,0,0,0.3);
-            padding: 50px;
-            border-radius: 30px;
-        }
-        h1 { font-size: 4rem; margin: 0; }
-        p { font-size: 1.2rem; margin-top: 15px; opacity: 0.7; }
-        
-        /* Zustands-Farben */
-        .online { background-color: #2ecc71; }
-        .offline { background-color: #e74c3c; }
-        .error { background-color: #95a5a6; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PC Status</title>
+
+<style>
+
+*{
+box-sizing:border-box;
+}
+
+body{
+margin:0;
+height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+font-family:Arial, Helvetica, sans-serif;
+transition:background 0.6s ease,color 0.6s ease;
+}
+
+/* Status Farben */
+
+.online{
+background:#ffffff;
+color:#000000;
+}
+
+.offline{
+background:#000000;
+color:#ffffff;
+}
+
+.error{
+background:#222;
+color:#fff;
+}
+
+/* Container */
+
+.container{
+text-align:center;
+}
+
+/* Titel */
+
+h1{
+font-size:7vw;
+margin:0;
+letter-spacing:2px;
+}
+
+/* Text */
+
+p{
+font-size:1.4rem;
+opacity:0.7;
+margin-top:15px;
+}
+
+/* Spinner */
+
+.spinner{
+width:60px;
+height:60px;
+border:6px solid rgba(255,255,255,0.2);
+border-top:6px solid white;
+border-radius:50%;
+animation:spin 1s linear infinite;
+margin:0 auto 30px auto;
+}
+
+@keyframes spin{
+0%{transform:rotate(0deg);}
+100%{transform:rotate(360deg);}
+}
+
+/* Loading Bar */
+
+.loadingbar{
+position:fixed;
+bottom:40px;
+width:300px;
+height:6px;
+background:rgba(255,255,255,0.2);
+border-radius:10px;
+overflow:hidden;
+}
+
+.bar{
+height:100%;
+width:0%;
+background:white;
+transition:width 1s linear;
+}
+
+.loadingtext{
+position:fixed;
+bottom:20px;
+font-size:14px;
+opacity:0.8;
+}
+
+/* Dev Button */
+
+.dev-button{
+position:fixed;
+bottom:10px;
+right:15px;
+font-size:12px;
+opacity:0.5;
+cursor:pointer;
+}
+
+.dev-button:hover{
+opacity:1;
+}
+
+</style>
 </head>
-<body id="bg" class="offline">
 
-    <div class="box">
-        <h1 id="status-text">LADE...</h1>
-        <p id="debug-info">Verbindung wird aufgebaut...</p>
-    </div>
+<body class="offline" id="bg">
 
-    <script>
-        // Deine URL von Firebase
-        const URL = "https://lolses-default-rtdb.firebaseio.com/status.json";
+<div class="container" id="main">
 
-        async function updateStatus() {
-            const bg = document.getElementById("bg");
-            const text = document.getElementById("status-text");
-            const debug = document.getElementById("debug-info");
+<div class="spinner" id="spinner"></div>
 
-            try {
-                const response = await fetch(URL);
-                const data = await response.json();
+<h1 id="status-text">STARTING</h1>
+<p id="debug-info">Initializing...</p>
 
-                // Falls die Datenbank leer ist
-                if (!data || !data.online) {
-                    bg.className = "error";
-                    text.innerText = "KEINE DATEN";
-                    debug.innerText = "Datenbank liefert kein 'online' Signal.";
-                    return;
-                }
+</div>
 
-                const lastSeen = data.online;
-                const now = Date.now() / 1000;
-                const diff = now - lastSeen;
+<div class="loadingbar">
+<div class="bar" id="bar"></div>
+</div>
 
-                // Wenn das Signal jünger als 20 Sekunden ist -> GRÜN
-                if (diff < 20) {
-                    bg.className = "online";
-                    text.innerText = "PC AN";
-                    debug.innerText = "Signal ist aktuell.";
-                } else {
-                    bg.className = "offline";
-                    text.innerText = "PC AUS";
-                    debug.innerText = "Letztes Signal vor " + Math.round(diff) + " Sekunden.";
-                }
+<div class="loadingtext" id="loadingtext">
+Connecting to database...
+</div>
 
-            } catch (err) {
-                bg.className = "error";
-                text.innerText = "FEHLER";
-                debug.innerText = "Konnte Firebase nicht erreichen. (Check F12 Console)";
-                console.error(err);
-            }
-        }
+<div class="dev-button" onclick="devOff()">PC AUS machen</div>
 
-        // Alle 3 Sekunden prüfen
-        setInterval(updateStatus, 3000);
-        updateStatus();
-    </script>
+<script>
+
+const URL="https://lolses-default-rtdb.firebaseio.com/status.json";
+
+/* Ladeanimation */
+
+function wait(ms){
+return new Promise(resolve=>setTimeout(resolve,ms));
+}
+
+async function startup(){
+
+const bar=document.getElementById("bar");
+const text=document.getElementById("loadingtext");
+
+/* Step 1 */
+
+text.innerText="Connecting to database...";
+bar.style.width="33%";
+await wait(2000+Math.random()*3000);
+
+/* Step 2 */
+
+text.innerText="Loading data...";
+bar.style.width="66%";
+await wait(1000+Math.random()*2000);
+
+/* Step 3 */
+
+text.innerText="Refreshing status...";
+bar.style.width="100%";
+await wait(2000);
+
+/* Lade UI entfernen */
+
+document.querySelector(".loadingbar").style.display="none";
+text.style.display="none";
+document.getElementById("spinner").style.display="none";
+
+/* Status laden */
+
+updateStatus();
+setInterval(updateStatus,3000);
+
+}
+
+async function updateStatus(){
+
+const bg=document.getElementById("bg");
+const text=document.getElementById("status-text");
+const debug=document.getElementById("debug-info");
+
+try{
+
+const response=await fetch(URL);
+const data=await response.json();
+
+if(!data||!data.online){
+bg.className="error";
+text.innerText="KEINE DATEN";
+debug.innerText="Keine Daten gefunden";
+return;
+}
+
+const lastSeen=data.online;
+const now=Date.now()/1000;
+const diff=now-lastSeen;
+
+const date=new Date(lastSeen*1000);
+
+const day=date.getDate().toString().padStart(2,"0");
+const month=(date.getMonth()+1).toString().padStart(2,"0");
+const year=date.getFullYear();
+
+const hours=date.getHours().toString().padStart(2,"0");
+const minutes=date.getMinutes().toString().padStart(2,"0");
+
+const timeString=`${day}.${month}.${year} • ${hours}:${minutes}`;
+
+if(diff<20){
+
+bg.className="online";
+text.innerText="PC AN";
+debug.innerText="Signal aktiv";
+
+}else{
+
+bg.className="offline";
+text.innerText="PC AUS";
+debug.innerText="Zuletzt online: "+timeString;
+
+}
+
+}catch(err){
+
+bg.className="error";
+text.innerText="FEHLER";
+debug.innerText="Firebase nicht erreichbar";
+
+}
+
+}
+
+/* Dev Off */
+
+async function devOff(){
+
+const code=prompt("Developer Code:");
+
+if(code!=="Pcoff"){
+alert("Falscher Code");
+return;
+}
+
+await fetch(URL,{
+method:"PATCH",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({online:0})
+});
+
+alert("PC Status auf AUS gesetzt");
+
+}
+
+startup();
+
+</script>
+
 </body>
 </html>
